@@ -41,6 +41,10 @@ import {
   Clock,
   Sparkles,
   Save,
+  PenTool,
+  Upload,
+  Grid,
+  Video,
 } from "lucide-react";
 import { FormRenderer } from "./FormRenderer";
 
@@ -65,6 +69,10 @@ const QUESTION_TYPES: Array<{ type: QuestionType; label: string; icon: any }> = 
   { type: "phone", label: "Phone Number", icon: Phone },
   { type: "url", label: "Website URL", icon: Link2 },
   { type: "date", label: "Date Picker", icon: Calendar },
+  { type: "signature", label: "Signature Pad", icon: PenTool },
+  { type: "file", label: "File Upload", icon: Upload },
+  { type: "matrix", label: "Matrix Grid", icon: Grid },
+  { type: "media_embed", label: "Video Embed", icon: Video },
   { type: "section", label: "Section Break", icon: Sparkles },
 ];
 
@@ -190,9 +198,12 @@ export function FormBuilderCanvas({
     const newQ: QuestionConfig = {
       id: newId,
       type,
-      label: `New ${type.replace("_", " ")} Question`,
+      label: `New ${type.replace("_", " ")} Block`,
       required: false,
       options: type === "single_choice" || type === "multiple_choice" || type === "dropdown" ? ["Option 1", "Option 2", "Option 3"] : undefined,
+      matrixRows: type === "matrix" ? ["Statement 1", "Statement 2"] : undefined,
+      matrixCols: type === "matrix" ? ["Strongly Disagree", "Neutral", "Strongly Agree"] : undefined,
+      mediaUrl: type === "media_embed" ? "https://www.youtube.com/embed/dQw4w9WgXcQ" : undefined,
       order: questions.length + 1,
     };
     setQuestions((prev) => [...prev, newQ]);
@@ -245,7 +256,7 @@ export function FormBuilderCanvas({
                 activeTab === "build" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white" : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
               }`}
             >
-              <Edit3 className="h-3.5 w-3.5" /> Editor
+              <Edit3 className="h-3.5 w-3.5" /> Canvas Editor
             </button>
             <button
               onClick={() => setActiveTab("preview")}
@@ -253,7 +264,7 @@ export function FormBuilderCanvas({
                 activeTab === "preview" ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white" : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
               }`}
             >
-              <Eye className="h-3.5 w-3.5" /> Preview
+              <Eye className="h-3.5 w-3.5" /> Preview Form
             </button>
           </div>
 
@@ -261,7 +272,7 @@ export function FormBuilderCanvas({
             onClick={() => onSave({ title, description, questions, theme })}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 transition-colors shadow-sm"
           >
-            <Save className="h-3.5 w-3.5" /> Save Form
+            <Save className="h-3.5 w-3.5" /> Save Workspace
           </button>
         </div>
       </div>
@@ -273,9 +284,9 @@ export function FormBuilderCanvas({
       ) : (
         <div className="mx-auto max-w-7xl px-4 py-8 grid grid-cols-12 gap-8">
           {/* Left Sidebar: Add Question Palette */}
-          <div className="col-span-3 space-y-4 sticky top-36 h-fit">
+          <div className="col-span-3 space-y-4 sticky top-36 h-fit max-h-[80vh] overflow-y-auto pr-1">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-3">
-              <h3 className="font-semibold text-slate-900 dark:text-white text-sm uppercase tracking-wider">Add Questions</h3>
+              <h3 className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider">Form Element Palette</h3>
               <div className="grid grid-cols-1 gap-2">
                 {QUESTION_TYPES.map((qt) => {
                   const Icon = qt.icon;
@@ -335,12 +346,12 @@ export function FormBuilderCanvas({
           <div className="col-span-3 sticky top-36 h-fit">
             {selectedQuestion ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 space-y-4">
-                <h3 className="font-semibold text-slate-900 dark:text-white text-sm uppercase tracking-wider flex items-center gap-2">
-                  <Sliders className="h-4 w-4 text-emerald-600" /> Inspector
+                <h3 className="font-semibold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="h-4 w-4 text-emerald-600" /> Inspector & Settings
                 </h3>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Question Label</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Block Label / Question</label>
                   <input
                     type="text"
                     value={selectedQuestion.label}
@@ -350,7 +361,7 @@ export function FormBuilderCanvas({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Subtext / Instructions</label>
                   <input
                     type="text"
                     value={selectedQuestion.description || ""}
@@ -358,6 +369,18 @@ export function FormBuilderCanvas({
                     className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                   />
                 </div>
+
+                {selectedQuestion.type === "media_embed" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Video / Media Embed URL</label>
+                    <input
+                      type="text"
+                      value={selectedQuestion.mediaUrl || ""}
+                      onChange={(e) => updateQuestion(selectedQuestion.id, { mediaUrl: e.target.value })}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                    />
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between pt-2">
                   <span className="text-xs font-medium text-slate-700 dark:text-slate-300">Required Field</span>
@@ -368,47 +391,10 @@ export function FormBuilderCanvas({
                     className="h-4 w-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
                   />
                 </div>
-
-                {(selectedQuestion.type === "single_choice" || selectedQuestion.type === "multiple_choice" || selectedQuestion.type === "dropdown") && (
-                  <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">Options</label>
-                    {(selectedQuestion.options || []).map((opt, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={opt}
-                          onChange={(e) => {
-                            const opts = [...(selectedQuestion.options || [])];
-                            opts[i] = e.target.value;
-                            updateQuestion(selectedQuestion.id, { options: opts });
-                          }}
-                          className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const opts = (selectedQuestion.options || []).filter((_, idx) => idx !== i);
-                            updateQuestion(selectedQuestion.id, { options: opts });
-                          }}
-                          className="text-slate-400 hover:text-rose-500 p-1"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => updateQuestion(selectedQuestion.id, { options: [...(selectedQuestion.options || []), `Option ${(selectedQuestion.options?.length || 0) + 1}`] })}
-                      className="text-xs text-emerald-600 hover:underline font-medium flex items-center gap-1 pt-1"
-                    >
-                      <Plus className="h-3 w-3" /> Add Option
-                    </button>
-                  </div>
-                )}
               </div>
             ) : (
               <div className="p-6 text-center text-xs text-slate-400 border border-dashed rounded-2xl">
-                Select a question on the canvas to configure properties.
+                Select an element on the canvas to inspect properties.
               </div>
             )}
           </div>

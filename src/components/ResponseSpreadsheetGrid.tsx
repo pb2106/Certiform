@@ -2,14 +2,17 @@
 
 import { useState } from "react";
 import { QuestionConfig, ResponseWithDetails } from "@/lib/types";
-import { Search, Download, FileSpreadsheet, FileArchive, CheckCircle2, XCircle, ExternalLink, Filter } from "lucide-react";
+import { Search, Download, FileSpreadsheet, FileArchive, CheckCircle2, XCircle, ExternalLink, HardDrive } from "lucide-react";
+import { DriveIntegrationModal } from "./DriveIntegrationModal";
 
 interface ResponseSpreadsheetGridProps {
   formId: string;
   formTitle: string;
   questions: QuestionConfig[];
   responses: ResponseWithDetails[];
+  currentDriveFolderUrl?: string | null;
   onStatusChange: (responseId: string, status: "approved" | "rejected") => void;
+  onSaveDriveFolder?: (url: string) => void;
 }
 
 export function ResponseSpreadsheetGrid({
@@ -17,12 +20,15 @@ export function ResponseSpreadsheetGrid({
   formTitle,
   questions,
   responses,
+  currentDriveFolderUrl,
   onStatusChange,
+  onSaveDriveFolder,
 }: ResponseSpreadsheetGridProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
 
-  const filterableQuestions = questions.filter((q) => q.type !== "section" && q.type !== "static");
+  const filterableQuestions = questions.filter((q) => q.type !== "section" && q.type !== "static" && q.type !== "media_embed");
 
   const filteredResponses = responses.filter((r) => {
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
@@ -37,10 +43,20 @@ export function ResponseSpreadsheetGrid({
 
   return (
     <div className="space-y-4 animate-fade-in">
+      <DriveIntegrationModal
+        isOpen={isDriveModalOpen}
+        onClose={() => setIsDriveModalOpen(false)}
+        formTitle={formTitle}
+        currentDriveFolderUrl={currentDriveFolderUrl}
+        onSaveDriveFolder={(url) => {
+          if (onSaveDriveFolder) onSaveDriveFolder(url);
+        }}
+      />
+
       {/* Search & Export Action Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-72">
+          <div className="relative flex-1 sm:w-64">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
@@ -63,6 +79,12 @@ export function ResponseSpreadsheetGrid({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsDriveModalOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-300"
+          >
+            <HardDrive className="h-3.5 w-3.5 text-blue-600" /> Drive Sync
+          </button>
           <a
             href={`/api/forms/${formId}/export?format=csv`}
             download

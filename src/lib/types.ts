@@ -18,7 +18,8 @@ export type QuestionType =
   | "ranking"
   | "signature"
   | "section"
-  | "static";
+  | "static"
+  | "media_embed";
 
 export interface QuestionValidation {
   min?: number;
@@ -27,6 +28,8 @@ export interface QuestionValidation {
   maxLength?: number;
   pattern?: string;
   customErrorMessage?: string;
+  allowedFileTypes?: string[];
+  maxFileSizeMb?: number;
 }
 
 export interface ConditionalRule {
@@ -43,6 +46,9 @@ export interface QuestionConfig {
   label: string;
   description?: string;
   options?: string[]; // for choice, dropdown, matrix, ranking
+  matrixRows?: string[]; // for matrix rows
+  matrixCols?: string[]; // for matrix columns
+  mediaUrl?: string; // for video/media embed block
   required?: boolean;
   placeholder?: string;
   defaultValue?: string | number;
@@ -59,7 +65,14 @@ export interface FormTheme {
   accentColor: string;
   borderRadius: string;
   shadow: string;
-  backgroundMediaUrl?: string;
+  backgroundImageUrl?: string;
+  backgroundVideoUrl?: string; // 10-sec cap MP4/WebM video background
+  liveAnimatedPreset?: "none" | "gradient-flow" | "glowing-particles" | "mesh-wave" | "cyber-grid";
+  liveAnimationColors?: {
+    primary: string;
+    secondary: string;
+  };
+  customCursor?: "default" | "emerald-dot" | "sparkle-pointer" | "crosshair-tech" | "neon-glow";
   customCss?: string;
   logoUrl?: string;
   logoPosition?: "left" | "center" | "right";
@@ -102,6 +115,7 @@ export interface FormWithDetails {
   requireLogin: boolean;
   captchaEnabled: boolean;
   allowSaveResume: boolean;
+  driveFolderUrl?: string | null;
   languageVariantsJson?: string | null;
   questions: QuestionConfig[];
   createdAt: Date;
@@ -120,4 +134,11 @@ export interface ResponseWithDetails {
     verificationCode: string;
     pdfUrl: string;
   } | null;
+  fileUploads?: Array<{
+    id: string;
+    blobUrl: string;
+    fileName: string;
+    size: number;
+    mimeType: string;
+  }>;
 }
