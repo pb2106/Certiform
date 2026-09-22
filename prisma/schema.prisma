@@ -1,0 +1,130 @@
+// Prisma Schema for Dynamic Form Builder & Certificate Automation Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(cuid())
+  name          String?
+  email         String         @unique
+  passwordHash  String?
+  image         String?
+  role          String         @default("user") // admin, user
+  forms         Form[]         @relation("FormOwner")
+  collaborators Collaborator[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Form {
+  id                   String                @id @default(cuid())
+  ownerId              String
+  owner                User                  @relation("FormOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  title                String
+  description          String?
+  status               String                @default("draft") // draft, live, closed
+  schemaJson           String                // JSON array of Question definitions
+  themeJson            String                // JSON styling tokens & canvas positioning
+  openAt               DateTime?
+  closeAt              DateTime?
+  responseLimit        Int?
+  requireLogin         Boolean               @default(false)
+  captchaEnabled       Boolean               @default(false)
+  allowSaveResume      Boolean               @default(true)
+  languageVariantsJson String?               // JSON translations per field
+  questions            Question[]
+  responses            Response[]
+  certificateTemplates CertificateTemplate[]
+  collaborators        Collaborator[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+}
+
+model Question {
+  id                   String   @id @default(cuid())
+  formId               String
+  form                 Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  type                 String   // text, paragraph, single_choice, multiple_choice, dropdown, scale, rating, number, date, time, email, phone, url, file, matrix, ranking, signature, section, static
+  label                String
+  description          String?
+  optionsJson          String?  // JSON options array
+  required             Boolean  @default(false)
+  validationRulesJson  String?  // Zod regex, min, max rules
+  conditionalLogicJson String?  // Show/Hide or jump branching rules
+  order                Int
+  createdAt            DateTime @default(now())
+}
+
+model Response {
+  id                 String              @id @default(cuid())
+  formId             String
+  form               Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  respondentEmail    String?
+  answersJson        String              // Key-value mapping of fieldId -> response value
+  submittedAt        DateTime            @default(now())
+  status             String              @default("approved") // pending, approved, rejected
+  ipHash             String?
+  fileUploads        FileUpload[]
+  issuedCertificates CertificateIssued[]
+  emailLogs          EmailLog[]
+}
+
+model FileUpload {
+  id         String   @id @default(cuid())
+  responseId String
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  questionId String
+  blobUrl    String
+  fileName   String
+  size       Int
+  mimeType   String
+  createdAt  DateTime @default(now())
+}
+
+model CertificateTemplate {
+  id               String              @id @default(cuid())
+  formId           String
+  form             Form                @relation(fields: [formId], references: [id], onDelete: Cascade)
+  name             String
+  backgroundUrl    String?
+  placeholdersJson String              // Coordinates, font specs, & dynamic binding tags
+  rulesJson        String?             // Conditional selection rules
+  issuedCerts      CertificateIssued[]
+  createdAt        DateTime            @default(now())
+}
+
+model CertificateIssued {
+  id               String              @id @default(cuid())
+  responseId       String
+  response         Response            @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  templateId       String
+  template         CertificateTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  pdfUrl           String
+  verificationCode String              @unique
+  issuedAt         DateTime            @default(now())
+}
+
+model EmailLog {
+  id         String   @id @default(cuid())
+  responseId String
+  response   Response @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  type       String   // submission_confirmation, certificate_issued, approval_update
+  status     String   // sent, failed
+  sentAt     DateTime @default(now())
+}
+
+model Collaborator {
+  id        String   @id @default(cuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("editor") // viewer, editor, admin
+  createdAt DateTime @default(now())
+}
